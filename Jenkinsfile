@@ -5,10 +5,12 @@ pipeline {
             args '-u root'  // Run as root to avoid permission issues
         }
     }
+	
     environment {
         // Define the Snyk token environment variable
         SNYK_TOKEN = credentials('snyk-token')
     }
+	
     stages {
         stage('Install Dependencies') {
             steps {
@@ -20,6 +22,7 @@ pipeline {
                 }
             }
         }
+
         stage('Run Tests') {
             steps {
                 script {
@@ -30,6 +33,7 @@ pipeline {
                 }
             }
         }
+
         stage('Snyk Security Scan') {
             steps {
                 script {
@@ -37,19 +41,23 @@ pipeline {
                     // Install Snyk globally and run the security scan
                     sh 'npm install -g snyk'
                     echo 'Snyk installed successfully.'
+
                     // Authenticate Snyk if necessary (add your Snyk auth token to environment variables)
-                    sh 'snyk auth $SNYK_TOKEN'
-                    // Run Snyk security scan with severity threshold set to high
+                    // sh 'snyk auth $SNYK_TOKEN'
+                    echo 'Running Snyk security scan with severity threshold set to high...'
+                    // Run Snyk security scan
                     sh 'snyk test --severity-threshold=high'
                     echo 'Snyk scan completed. Check for any critical vulnerabilities.'
                 }
             }
         }
     }
+
     post {
         always {
             echo 'Pipeline execution finished. Check the above steps for results.'
         }
+
         failure {
             echo 'Pipeline execution failed. Please review the logs above for details.'
         }
