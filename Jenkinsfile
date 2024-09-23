@@ -1,65 +1,23 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:16'  // Use Node 16 Docker image as the build agent
-            args '-u root'  // Run as root to avoid permission issues
-        }
-    }
-	
-    environment {
-        // Define the Snyk token environment variable
-        SNYK_TOKEN = credentials('snyk-token')
-    }
-	
+    agent { docker { image 'node:16' } }
     stages {
-        stage('Install Dependencies') {
+        stage('Install dependencies') {
             steps {
-                script {
-                    echo 'Starting to install project dependencies using npm...'
-                    // Install the project dependencies using npm
-                    sh 'npm install --save'
-                    echo 'Dependencies installed successfully.'
-                }
+                sh 'node --version'
+                sh 'npm --version'
+                sh 'npm install --save'
+                sh 'npm install express@4.20.0'
             }
         }
-
-        stage('Run Tests') {
+        stage('Snyk Scan') {
             steps {
-                script {
-                    echo 'Starting to run project tests...'
-                    // Optionally, add a step to run tests if there are any defined in package.json
-                    sh 'npm test'
-                    echo 'Tests completed successfully.'
-                }
+                echo 'Scanning...'
+                sh '''
+                npm install snyk -g
+                snyk auth 743916bb-4361-4f05-b84d-ceeeee17d530
+                snyk test --severity-threshold=high
+                '''
             }
-        }
-
-        stage('Snyk Security Scan') {
-            steps {
-                script {
-                    echo 'Starting Snyk security scan...'
-                    // Install Snyk globally and run the security scan
-                    sh 'npm install -g snyk'
-                    echo 'Snyk installed successfully.'
-
-                    // Authenticate Snyk if necessary (add your Snyk auth token to environment variables)
-                    // sh 'snyk auth $SNYK_TOKEN'
-                    echo 'Running Snyk security scan with severity threshold set to high...'
-                    // Run Snyk security scan
-                    sh 'snyk test --severity-threshold=high'
-                    echo 'Snyk scan completed. Check for any critical vulnerabilities.'
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline execution finished. Check the above steps for results.'
-        }
-
-        failure {
-            echo 'Pipeline execution failed. Please review the logs above for details.'
         }
     }
 }
