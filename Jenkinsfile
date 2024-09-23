@@ -1,11 +1,14 @@
 pipeline {
     agent { docker { image 'node:16' } }
+    environment {
+        SNYK_TOKEN = credentials('SNYK_TOKEN')  // Using Jenkins credentials
+    }
     stages {
         stage('Install dependencies') {
             steps {
                 sh 'node --version'
                 sh 'npm --version'
-                sh 'npm install --save'
+                sh 'npm ci'  // Ensure a clean install
                 sh 'npm install express@4.20.0'
             }
         }
@@ -13,11 +16,12 @@ pipeline {
             steps {
                 echo 'Scanning...'
                 sh '''
-                npm install snyk -g
-                snyk auth 743916bb-4361-4f05-b84d-ceeeee17d530
-                snyk test --severity-threshold=high
+                npm install snyk --save-dev
+                ./node_modules/.bin/snyk auth $SNYK_TOKEN
+                ./node_modules/.bin/snyk test --severity-threshold=high
                 '''
             }
         }
     }
 }
+
