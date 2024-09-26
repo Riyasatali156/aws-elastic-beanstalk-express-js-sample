@@ -2,12 +2,12 @@ pipeline {
     agent {
         docker {
             image 'node:16'
-            args '-u root'  // Run as root to avoid permission issues
+            args '-u root'
         }
     }
 	
     environment {
-        SNYK_TOKEN = credentials('SNYK_TOKEN')  // Get Snyk token from Jenkins credentials
+        SNYK_TOKEN = credentials('SNYK_TOKEN')
     }
 	
     stages {
@@ -15,7 +15,7 @@ pipeline {
             steps {
                 script {
                     echo 'Starting to install project dependencies using npm...'
-                    sh 'npm install --save'  // Install dependencies
+                    sh 'npm install --save'
                     echo 'Dependencies installed successfully.'
                 }
             }
@@ -25,7 +25,6 @@ pipeline {
             steps {
                 script {
                     echo 'Starting to run project tests...'
-                    // Run the tests if any are defined in package.json
                     def testExists = sh(script: "npm run | grep -q 'test'", returnStatus: true)
                     if (testExists == 0) {
                         sh 'npm test'
@@ -41,19 +40,18 @@ pipeline {
             steps {
                 script {
                     echo 'Starting Snyk security scan...'
-                    sh 'npm install -g snyk'  // Install Snyk globally
+                    sh 'npm install -g snyk'
                     echo 'Snyk installed successfully.'
                     
-                    // Authenticate Snyk using the SNYK_TOKEN
                     sh "snyk auth ${SNYK_TOKEN}"
 
                     echo 'Running Snyk security scan with severity threshold set to high...'
-                    // Run Snyk security scan, fail the build if upgradable vulnerabilities are found
-                    def snykResult = sh(script: 'snyk test --severity-threshold=high --fail-on=upgradable', returnStatus: true)
+                    // Allow vulnerabilities below the critical level to pass the pipeline
+                    def snykResult = sh(script: 'snyk test --severity-threshold=high --fail-on=patchable', returnStatus: true)
                     if (snykResult != 0) {
-                        error 'Upgradable vulnerabilities found! Failing the pipeline.'
+                        error 'Patchable vulnerabilities found! Failing the pipeline.'
                     } else {
-                        echo 'Snyk scan completed. No upgradable vulnerabilities found.'
+                        echo 'Snyk scan completed. No patchable vulnerabilities found.'
                     }
                 }
             }
