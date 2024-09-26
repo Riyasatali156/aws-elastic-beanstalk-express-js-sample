@@ -1,14 +1,13 @@
 pipeline {
     agent {
         docker {
-            image 'node:16'  // Use Node 16 Docker image as the build agent
+            image 'node:16'
             args '-u root'  // Run as root to avoid permission issues
         }
     }
 	
     environment {
-        // Define the Snyk token environment variable
-        SNYK_TOKEN = credentials('SNYK_TOKEN')
+        SNYK_TOKEN = credentials('SNYK_TOKEN')  // Get Snyk token from Jenkins credentials
     }
 	
     stages {
@@ -16,8 +15,7 @@ pipeline {
             steps {
                 script {
                     echo 'Starting to install project dependencies using npm...'
-                    // Install the project dependencies using npm
-                    sh 'npm install --save'
+                    sh 'npm install --save'  // Install dependencies
                     echo 'Dependencies installed successfully.'
                 }
             }
@@ -27,9 +25,14 @@ pipeline {
             steps {
                 script {
                     echo 'Starting to run project tests...'
-                    // Optionally, add a step to run tests if there are any defined in package.json
-                    sh 'npm test'
-                    echo 'Tests completed successfully.'
+                    // Run the tests if any are defined in package.json
+                    def testExists = sh(script: "npm run | grep -q 'test'", returnStatus: true)
+                    if (testExists == 0) {
+                        sh 'npm test'
+                        echo 'Tests completed successfully.'
+                    } else {
+                        echo 'No test script found, skipping tests.'
+                    }
                 }
             }
         }
@@ -38,12 +41,12 @@ pipeline {
             steps {
                 script {
                     echo 'Starting Snyk security scan...'
-                    // Install Snyk globally and run the security scan
-                    sh 'npm install -g snyk'
+                    sh 'npm install -g snyk'  // Install Snyk globally
                     echo 'Snyk installed successfully.'
+                    
+                    // Authenticate Snyk using the SNYK_TOKEN
+                    sh "snyk auth ${SNYK_TOKEN}"
 
-                    // Authenticate Snyk if necessary (add your Snyk auth token to environment variables)
-                    // sh 'snyk auth $SNYK_TOKEN'
                     echo 'Running Snyk security scan with severity threshold set to high...'
                     // Run Snyk security scan
                     sh 'snyk test --severity-threshold=high'
