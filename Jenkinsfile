@@ -48,9 +48,13 @@ pipeline {
                     sh "snyk auth ${SNYK_TOKEN}"
 
                     echo 'Running Snyk security scan with severity threshold set to high...'
-                    // Run Snyk security scan
-                    sh 'snyk test --severity-threshold=high'
-                    echo 'Snyk scan completed. Check for any critical vulnerabilities.'
+                    // Run Snyk security scan, only fail the build on critical issues
+                    def snykResult = sh(script: 'snyk test --severity-threshold=high --fail-on=critical', returnStatus: true)
+                    if (snykResult != 0) {
+                        error 'Critical vulnerabilities found! Failing the pipeline.'
+                    } else {
+                        echo 'Snyk scan completed. No critical vulnerabilities found.'
+                    }
                 }
             }
         }
