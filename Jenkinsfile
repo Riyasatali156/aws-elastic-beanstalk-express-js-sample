@@ -8,7 +8,7 @@ pipeline {
 	
     environment {
         // Define the Snyk token environment variable
-        SNYK_TOKEN = credentials('snyk-token')
+        SNYK_TOKEN = credentials('SNYK_TOKEN')
     }
 	
     stages {
